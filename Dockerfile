@@ -8,7 +8,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -buildvcs=false -o r
 
 FROM public.ecr.aws/docker/library/alpine:3.18
 
-COPY --from=build /usr/src/rds_exporter/rds_exporter  /bin/
+COPY --from=builder /usr/src/rds_exporter/rds_exporter  /bin/
 # COPY config.yml           /etc/rds_exporter/config.yml
 
 RUN apk update && \

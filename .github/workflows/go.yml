@@ -3,47 +3,45 @@ name: Go
 on: [push, pull_request]
 
 jobs:
-  test:
-    name: Test
-    strategy:
-      matrix:
-        go-version:
-          - 1.16
-        include:
-          - go-version: tip
-            os: ubuntu-latest
-            may-fail: true
+  AMD64build:
+    name: AMD64build
     runs-on: ubuntu-latest
-    # The environment this job references
-    environment:
-      name: CI
     steps:
-    - name: Set up Go release
-      if: matrix.go-version != 'tip'
-      uses: percona-platform/setup-go@v2
+    - name: "checkout go"
+      uses: actions/checkout@master
+    - name: "setup go"
+      uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go-version }}
-    - name: Set up Go tip
-      if: matrix.go-version == 'tip'
+        go-version: '1.22'
+    - name: Set output
+      id: vars
+      run: echo "tag=$(date +%Y%m%d%H%M%S)-$(echo ${GITHUB_SHA} | cut -c1-8)-$(echo ${GITHUB_REF} | sed -e "s/refs\/heads\///g" | sed -e "s/\//-/g")" >> $GITHUB_OUTPUT
+    - name: Check output
       env:
-        # to avoid error due to `go version` accepting -v flag with an argument since 1.15
-        GOFLAGS: ""
+        RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
       run: |
-        git clone --depth=1 https://go.googlesource.com/go $HOME/gotip
-        cd $HOME/gotip/src
-        ./make.bash
-        echo "GOROOT=$HOME/gotip" >> $GITHUB_ENV
-        echo "$HOME/gotip/bin" >> $GITHUB_PATH
-    - name: Checkout code
-      uses: percona-platform/checkout@v2
+        echo ${{ steps.vars.outputs.tag }}
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: "manifest"
+      run:  echo `git log | grep commit | head -1 | cut -d" " -f2` > manifest
+    - uses: actions/cache@v4
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3.1.0
     - name: Build
       run: make build
-    - name: "Build and Push event-exporter Image"
+    - name: "Build and Push rds-exporter Image"
       uses: elgohr/Publish-Docker-Github-Action@v5
       with:
         name: kubestar/rds-exporter
         dockerfile: Dockerfile
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
-        platforms: linux/amd64,linux/arm64
-        tags: "v0.1,latest"
+        platforms: linux/arm64
+        tags: "v0.1.0"

@@ -66,3 +66,12 @@ jobs:
         go env
         pwd
         git status
+    - name: "Build and Push event-exporter Image"
+      uses: elgohr/Publish-Docker-Github-Action@v5
+      with:
+        name: kubestar/rds-exporter
+        dockerfile: Dockerfile
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        platforms: linux/amd64,linux/arm64
+        tags: "v0.1,latest"

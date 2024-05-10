@@ -4,7 +4,7 @@ COPY . /usr/src/rds_exporter
 
 RUN cd /usr/src/rds_exporter && go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -buildvcs=false -o rds_exporter
+RUN CGO_ENABLED=0 GOOS=linux go build -o rds_exporter
 
 FROM public.ecr.aws/docker/library/alpine:3.18
 
